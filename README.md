@@ -34,7 +34,7 @@ We provide script for evaluting zero-shot clip, clip* and clip-bnl on nT2V.
 
 Here are the  checkpoints and performances of clip, clip* and clip-bnl:
 
-###MSRVTT3k
+### MSRVTT3k
 | Model Checkpoint| Original |       |       |        |   Negated   |             |              |              | Composed |       |        |        | 
 |-----------------|:--------:|:-----:|:-----:|:------:|:-----------:|:-----------:|:------------:|:------------:|:--------:|------:|-------:|-------:|
 |                 |     $R1$ |  $R5$ | $R10$ |  $MIR$ | $\Delta R1$ | $\Delta R5$ | $\Delta R10$ | $\Delta MIR$ |     $R1$ |  $R5$ |  $R10$ |  $MIR$ |            
@@ -44,7 +44,7 @@ Here are the  checkpoints and performances of clip, clip* and clip-bnl:
 | CLIP* (boolean) |       -- |    -- |    -- |     -- |       25.3  |       47.1  |        56.1  |        13.5  |    33.7  | 45.5  | 0.236  | 0.243  |            
 | [CLIP-bnl](https://pan.baidu.com/s/13mi2tqrx5q4W_9R-uFPHGQ?pwd=pyeu)      |    28.4  | 53.7  | 64.6  | 0.404  |        5.0  |        6.9  |         6.9  |       0.057  |    15.3  | 40.0  |  53.3  | 0.274  |            
 
-###MSRVTT1k
+### MSRVTT1k
 | Model Checkpoint| Original |       |       |        |   Negated   |             |              |              | Composed |       |       |        | 
 |-----------------|:--------:|:-----:|:-----:|:------:|:-----------:|:-----------:|:------------:|:------------:|:--------:|------:|------:|-------:|
 |                 |     $R1$ |  $R5$ | $R10$ |  $MIR$ | $\Delta R1$ | $\Delta R5$ | $\Delta R10$ | $\Delta MIR$ |     $R1$ |  $R5$ | $R10$ |  $MIR$ |            
@@ -127,7 +127,7 @@ cd negationdata
 bash prepare_data.sh
 ```
 
-##Citation
+## Citation
 ```
 @inproceedings{mm22-nt2vr,
 title = {Learn to Understand Negation in Video Retrieval},
