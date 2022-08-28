@@ -1,0 +1,8 @@
+numpy==1.20.1
+six==1.12.0
+torch==1.7.0+cu110
+torchvision==0.8.1+cu110
+pandas==1.2.3
+tqdm==4.64.0
+transformers==4.3.2
+tensorboard
