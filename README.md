@@ -1,4 +1,5 @@
 # Learn to Understand Negation in Video Retrieval
+
 This is the official source code of our paper: Learn to Understand Negation in Video Retrieval.
 ## Requirements
 We used Anaconda to setup a deep learning workspace that supports PyTorch. Run the following script to install all the required packages.
