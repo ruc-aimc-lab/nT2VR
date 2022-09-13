@@ -138,14 +138,14 @@ bash prepare_data.sh
 ```
 @inproceedings{mm22-nt2vr,
 title = {Learn to Understand Negation in Video Retrieval},
-author = {Ziyue Wang, Aozhu Chen, Fan Hu, \& Xirong Li},
+author = {Ziyue Wang and Aozhu Chen and Fan Hu and Xirong Li},
 year = {2022},
 booktitle = {ACMMM},
 }
 ```
 
 ## Contact
-If you enounter issues when running the code,  feel free to reach us.
+If you enounter issues when running the code, please feel free to reach us.
 - Ziyue Wang (ziyuewang@ruc.edu.cn)
 - Aozhu Chen (caz@ruc.edu.cn)
 - Fan Hu (hufan_hf@ruc.edu.cn)
