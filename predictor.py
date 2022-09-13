@@ -178,46 +178,7 @@ def prepare_config(opt, checkToSkip=True ):
 
 
     # ***************************萌萌哒*****************************
-    # 视频 Feature 文件
-    vis_feat_files = {x: None for x in collections}
-    if len(config.vid_feats) > 0:
-        vis_feat_files = {collection: {y: BigFile(os.path.join(rootpath, collections[collection], 'FeatureData', y))
-                                       for y in config.vid_feats} for collection in collections}
-        # config.vis_fc_layers = list(map(int, config.vis_fc_layers.split('-')))
-        config.vis_fc_layers[0] = {}
-        for each in vis_feat_files['test'].keys():
-            config.vis_fc_layers[0][each] = vis_feat_files['test'][each].ndims
-        if config.vis_feat_add_concat:
-            feat_dim_sum = np.sum(list(config.vis_fc_layers[0].values()))
-            config.vis_fc_layers[0]['vis_feat_add_concat'] = feat_dim_sum
 
-    # 视频 muti_feat 文件 （Faster-rnn 特征）
-    vis_muti_feat_dicts = {x: None for x in collections}
-    if config.SGRAF:
-        vis_muti_feat_paths = {x: os.path.join(rootpath, collections[x], 'VideoMultiLabelFeat', config.muti_feat) for x
-                               in
-                               collections}
-        if os.path.realpath(vis_muti_feat_paths['train']) == os.path.realpath(vis_muti_feat_paths['val']):
-            vis_muti_feat_dicts['train'] = vis_muti_feat_dicts['val'] = np.load(vis_muti_feat_paths['train'],
-                                                                                allow_pickle=True).item()
-        else:
-            vis_muti_feat_dicts['train'] = np.load(vis_muti_feat_paths['train'], allow_pickle=True).item()
-            vis_muti_feat_dicts['val'] = np.load(vis_muti_feat_paths['val'], allow_pickle=True).item()
-
-    # 视频帧特征文件
-    vis_frame_feat_dicts = {x: None for x in collections}
-    if hasattr(config,'frame_feat_input') and config.frame_feat_input:
-        vis_frame_feat_dicts = {
-            collection: {y: BigFile(os.path.join(rootpath, collections[collection], 'FrameFeatureData', y))
-                         for y in config.vid_frame_feats} for collection in collections}
-        for each in vis_frame_feat_dicts['test'].keys():  # 增加相关维度信息
-            config.vis_fc_layers[0][each] = vis_frame_feat_dicts['test'][each].ndims
-
-
-        # 视频转换参数
-        config.vis_fc_layers_task2 = list(map(int, config.vis_fc_layers_task2.split('-')))
-        config.vis_fc_layers_task2[0] = config.vis_fc_layers[0]
-        config.vis_fc_layers_task2[1] = config.t2v_bow_task2.ndims
     if task3_caption_suffix == 'no_task3_caption':
         config.task3 = False
     else:
@@ -370,9 +331,7 @@ def get_predict_file(opt, checkpoint):
                                    for y in config.vid_feats}
     # 视频帧特征文件
     vis_frame_feat_dicts = None
-    if config.frame_feat_with_vid_feats:
-        vis_frame_feat_dicts = {y: BigFile(os.path.join(rootpath, testCollection, 'FrameFeatureData', y))
-                                             for y in config.vid_frame_feats}
+
     vis_ids = list(map(str.strip, open(os.path.join(rootpath, testCollection, 'VideoSets', testCollection + '.txt'))))
     # 视频帧文件
     if  hasattr(config, 'frame_loader') and  config.frame_loader:
@@ -383,7 +342,6 @@ def get_predict_file(opt, checkpoint):
     config.sample_frame=config.test_sample_frame
     vis_loader = data.vis_provider({'vis_feat_files': vis_feat_files, 'vis_ids': vis_ids, 'pin_memory': False,
                                     'vis_frame_feat_dicts': vis_frame_feat_dicts,
-                                    'max_frame': config.max_frame,
                                     'sample_type': config.frame_sample_type_test,
                                     'config': config,"origin_vis_feat_files":None,
                                     'frame_id_path_file': frame_id_path_file,

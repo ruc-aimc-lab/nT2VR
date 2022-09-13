@@ -12,10 +12,10 @@ model_path="/data1/wzy/VisualSearch/msrvtt1kAtrain/w2vvpp_train/clipbnl_msrvtt9k
 #model_path="/data1/wzy/VisualSearch/vatex_train/w2vvpp_train/vatex_val1k5/CLIP.CLIPEnd2EndNegnomask/runs_7_1_0.001_0.1_0.6_100_0.1_0.3_seed_2/model_best.pth.tar"
 
 # msrvtt 7k split
-testCollection="msrvtt10ktest"
+#testCollection="msrvtt10ktest"
 
 # msrvtt 1k split
-#testCollection="msrvtt1kAtest"
+testCollection="msrvtt1kAtest"
 
 # vatex
 #testCollection="vatex_test1k5"

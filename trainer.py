@@ -95,29 +95,9 @@ def prepare_config(opt, checkToSkip=True,train=True ):
     cap_file_paths = {x: os.path.join(rootpath, collections[x], 'TextData', capfiles[x] % collections[x]) for x in
                       collections}
     # ***************************萌萌哒*****************************
-    # 视频 Feature 文件
     vis_feat_files = {x: None for x in collections}
-    if len(config.vid_feats) > 0:
-        vis_feat_files = {collection: {y: BigFile(os.path.join(rootpath, collections[collection], 'FeatureData', y))
-                                       for y in config.vid_feats} for collection in collections}
-        # config.vis_fc_layers = list(map(int, config.vis_fc_layers.split('-')))
-        config.vis_fc_layers[0] = {}
-        for each in vis_feat_files['train'].keys():
-            config.vis_fc_layers[0][each] = vis_feat_files['train'][each].ndims
-        if config.vis_feat_add_concat:
-            feat_dim_sum = np.sum(list(config.vis_fc_layers[0].values()))
-            config.vis_fc_layers[0]['vis_feat_add_concat'] = feat_dim_sum
-
-    # 视频 muti_feat 文件 （Faster-rnn 特征）
     vis_muti_feat_dicts = {x: None for x in collections}
-      # 视频帧特征文件
     vis_frame_feat_dicts = {x: None for x in collections}
-    if config.frame_feat_with_vid_feats:
-        vis_frame_feat_dicts = {
-            collection: {y: BigFile(os.path.join(rootpath, collections[collection], 'FrameFeatureData', y))
-                         for y in config.vid_frame_feats} for collection in collections}
-        for each in vis_frame_feat_dicts['train'].keys():  # 增加相关维度信息
-            config.vis_fc_layers[0][each] = vis_frame_feat_dicts['train'][each].ndims
     # 视频帧文件
     if config.frame_loader:
         frame_id_path_file = {'train': os.path.join(rootpath, trainCollection, 'id.imagepath.txt'),
@@ -134,7 +114,11 @@ def prepare_config(opt, checkToSkip=True,train=True ):
     origin_vis_feat_files={x: None for x in collections}
     if task3_caption_suffix == 'no_task3_caption':
         config.task3 = False
-        cap_file_paths_task3 = {x: None for x in collections}
+        capfiles_task3 = {'train': '%s.caption.txt' % ('%s'),
+                          'val': os.path.join(val_set, '%s.caption.txt' % ('%s'))}
+        cap_file_paths_task3 = {
+        x: os.path.join(rootpath, collections[x], 'TextData', capfiles_task3[x] % collections[x])
+        for x in collections}
     else:
         config.task3=True
 
@@ -211,7 +195,7 @@ def main(opt):
         map(str.strip, open(os.path.join(opt.rootpath, opt.trainCollection, 'VideoSets', opt.trainCollection + '.txt'))))
     params_parirloader = {x: {'vis_feat_files': vis_feat_files[x], 'capfile': cap_file_paths_task3[x],
                               'vis_frame_feat_dicts': vis_frame_feat_dicts[x],
-                              'max_frame': config.max_frame, 'vis_ids': vis_ids,
+                             'vis_ids': vis_ids,
                               'sample_type': config.frame_sample_type_train,
                               'vis_muti_feat_dicts': vis_muti_feat_dicts[x],
                               'frame_id_path_file': frame_id_path_file[x], 'pin_memory': False,
@@ -225,14 +209,17 @@ def main(opt):
     if __name__ != '__main__' and torch.cuda.device_count() > 1:
         params_parirloader["train"]['sampler'] = 'NotNone'
         params_parirloader["train"]['shuffle'] = False
-    data_loaders = {x: data.pair_provider_withneg(params_parirloader[x])
-                for x in  ['train']}
-
+    if config.task3:
+        data_loaders = {x: data.pair_provider_withneg(params_parirloader[x])
+                    for x in  ['train']}
+    else:
+        params_parirloader['capfile']=cap_file_paths
+        data_loaders = {x: data.pair_provider(params_parirloader[x])
+                        for x in ['train']}
 
     vis_ids = list(map(str.strip, open(os.path.join(opt.rootpath, opt.valCollection, 'VideoSets', opt.valCollection + '.txt'))))
     vis_loader_val = data.vis_provider({'vis_feat_files': vis_feat_files['val'], 'vis_ids': vis_ids, 'pin_memory': False,
                                     'vis_frame_feat_dicts': vis_frame_feat_dicts['val'],
-                                    'max_frame': config.max_frame,
                                         'sample_type': config.frame_sample_type_test,
                                         'frame_id_path_file': frame_id_path_file['val'],
                                     'batch_size': int(opt.batch_size * 2),
@@ -243,7 +230,6 @@ def main(opt):
                                     'batch_size': opt.batch_size, 'task3': config.task3,
                                     'capfile_task2': False, "max_txtlength": config.max_txtlength})
 
-    txt_loader_concept_val=None
     # Train the Model
     best_perf = 0
     no_impr_counter = 0
@@ -259,9 +245,7 @@ def main(opt):
             model.change_raw_global_emb_weight()
         # train for one epoch
         train(model, data_loaders['train'], epoch)
-        if config.lr_warmup:
-            if model.task3_neg_retrival_weight<config.task3_upper_lr:
-                model.task3_neg_retrival_weight+=0.0005
+
         # additional training data
         if 'train2' in data_loaders:
             train(model, data_loaders['train2'], epoch)
@@ -359,7 +343,7 @@ def validate(model, txt_loader, vis_loader, epoch, measure='cosine', metric='mir
         debug=True
     else:
         debug=False
-    txt2vis_sim, txt_ids, vis_ids,labels = model.predict_multi(txt_loader, vis_loader, config.measure,debug=debug)
+    txt2vis_sim, txt_ids, vis_ids,labels = model.predict_multi(txt_loader, vis_loader, config.measure)
     inds = np.argsort(txt2vis_sim, axis=1)
     label_matrix = np.zeros(inds.shape)  #
 
@@ -403,8 +387,8 @@ def save_checkpoint(state, is_best, filename='checkpoint.pth.tar', only_best=Fal
     :return:
     """
     resfile = os.path.join(logdir, filename)
-    torch.save(state, resfile)
     if is_best:
+        torch.save(state, resfile)
         shutil.copyfile(resfile, os.path.join(logdir, 'model_temp_best.pth.tar'))
 
 
@@ -424,13 +408,13 @@ if __name__ == '__main__':
         sys.argv = "trainer.py --device 1 msrvtt10ktrain msrvtt10kval " \
                    "--rootpath /home/wzy/VisualSearch --batch_size 32 " \
                    "--train_strategy usual " \
-                   "--config_name CLIP.CLIPEnd2EndNegnomask " \
-                   "--parm_adjust_config 1_0.001_0.1_0.3_100_0.1_0.6_0.001 " \
+                   "--config_name CLIP.CLIPEnd2End_adjust " \
+                   "--parm_adjust_config 1 " \
                    "--val_set no " \
                    "--save_mean_last 0 " \
                    "--pretrained_file_path None " \
                    "--model_prefix runs_9_ --overwrite 1 " \
-                    "--task3_caption mask".split(' ')
+                    "--task3_caption no_task3_caption".split(' ')
 
     opt = parse_args()  # 这里opt是输入的值，config 才是参数文件中读取的
 

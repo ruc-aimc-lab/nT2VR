@@ -143,7 +143,6 @@ class config(object):
     vis_expert_embedding = {'expert': False, 'l2norm': False}
 
     # visual frame feats
-    max_frame = 77  # 最大输入 max_frame 帧特征（不是end2endtrain 比如和在线推理clip无关）
     frame_feat_with_vid_feats = False  # 是否加上 v_frame_feats，if model == w2vpp_MutiVisFrameFeat_attention
     vid_frame_feats = ['pyresnext-101_rbps13k,flatten0_output,os+pyresnet-152_imagenet11k,flatten0_output,os',
                        ]

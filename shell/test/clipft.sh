@@ -11,10 +11,10 @@ rootpath="/data1/wzy/neg_data"
 model_path="/data1/wzy/VisualSearch/msrvtt1kAtrain/w2vvpp_train/clipft_msrvtt9k.pth.tar"
 
 # msrvtt 7k split
-testCollection="msrvtt10ktest"
+#testCollection="msrvtt10ktest"
 
 # msrvtt 1k split
-#testCollection="msrvtt1kAtest"
+testCollection="msrvtt1kAtest"
 
 # vatex
 #testCollection="vatex_test1k5"

@@ -36,7 +36,7 @@ class config(BaseConfig.config):
     # if text_encoding includes CLIP
     clip_opt = {
         'size': 512, 'transform_batch_norm': True, 'transform_dropout': 0.0,
-        'transform_activation': 'tanh', 'frozen': False,
+        'transform_activation': 'tanh', 'frozen': False,'vocab_size':49408
     }
     sample_frame = 8 # 每个视频均匀选 sample_frame 张
     test_sample_frame=8

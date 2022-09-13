@@ -5,7 +5,7 @@ source activate py37
 # *************************萌萌哒******************************
 # 并行参数
 Nproc=1  # 最大同时运行数目
-devices=(2)
+devices=(1)
 # 实验超参
 rootpath="/data1/wzy/neg_data"
 trainCollection="vatex_train"

@@ -35,7 +35,6 @@ def generate_sent_masks(source_lengths,maxframe):
 
 # 这些是得到 dataloader 列表的后处理
 def collate_vision(data):
-    max_frame=12
     idxs, vis_ids, vis_origin_frame_tuple,frame_mask = list(zip(*data))
     # 得到多视频特征字典
     vis_feat_dict = {}
@@ -143,42 +142,10 @@ def collate_text_withneg(data):
     return output
 
 
-
 def collate_pair(data):
-    max_frame=12
-    data.sort(key=lambda x: len(TextTool.tokenize(x[1]['caption'])), reverse=True)
-    vis_feat_tuple, caption_dict_tuples, vis_muti_feat, caption_labels_task2, \
-    idxs, vis_ids, cap_ids, vis_frame_feat_tuple, caption_labels_task3, mask_task3,frame_mask = list(zip(*data))
 
-    # 视频特征字典
-    vis_feat_dict = {}
-    for name in vis_feat_tuple[0].keys():
-        vis_feat_dict[name] = torch.stack([each[name] for each in vis_feat_tuple], 0)
-
-    # 视频帧特征字典，由于帧数不统一，使用 0 填充，并且输出 mask_tensor 矩阵
-    vis_frame_feat_dict = {}
-    if vis_frame_feat_tuple[0] != {}:
-        # 得到 source_lengths 列表
-        name = list(vis_frame_feat_tuple[0].keys())[0]
-        source_lengths = [each[name].shape[0] for each in vis_frame_feat_tuple]
-        mask_tensor = generate_sent_masks(source_lengths,max_frame)
-        vis_frame_feat_dict['mask_tensor'] = mask_tensor
-        batch_size, max_length = mask_tensor.shape
-
-        for name in vis_frame_feat_tuple[0].keys():
-            vis_frame_feat_dict[name] = torch.zeros(
-                batch_size, max_length, vis_frame_feat_tuple[0][name].shape[-1]
-            )
-            for index, each in enumerate(vis_frame_feat_tuple):
-                vis_frame_feat_dict[name][index][0:source_lengths[index]] = each[name]
-
-    if vis_origin_frame_tuple[0] != {}:
-        frame_mask = torch.stack([each for each in frame_mask], 0)
-    if vis_muti_feat[0] is not None:
-        vis_muti_feat = torch.stack(vis_muti_feat, 0)
-
-    # 文本特征字典
-
+    caption_dict_tuples, idxs, vis_ids, cap_ids, caption_labels_task3, mask_task3, vis_origin_frame_tuple, frame_mask = list(
+        zip(*data))
 
     # 文本特征字典
     # 得到多特征 caption 字典
@@ -191,19 +158,11 @@ def collate_pair(data):
             caption_feat_dict[name] = torch.stack([each[name] for each in caption_dict_tuples], 0)
 
     caption_task2_feat_dict = {}
-    if caption_labels_task2[0] is not None:
-        for name in caption_labels_task2[0].keys():
-            if name == 'caption':
-                caption_task2_feat_dict[name] = [each[name] for each in caption_labels_task2]
-            else:
-                caption_task2_feat_dict[name] = torch.stack([each[name] for each in caption_labels_task2], 0)
     caption_task3_feat_dict = {}
 
     idxs = list(idxs)  # 如果是 pin_memory = False 必须要这样,否则evaluation.py 无法执行
-    output = {'vis_feats': vis_feat_dict, 'vis_muti_feat': vis_muti_feat,
-              'vis_frame_feat_dict': vis_frame_feat_dict,
-              'vis_origin_frame_tuple': vis_origin_frame_tuple,
-              'captions': caption_feat_dict, 'captions_task2': caption_labels_task2,
+    output = {'vis_feats': None,'vis_frame_feat_dict': {},'vis_origin_frame_tuple': vis_origin_frame_tuple,
+              'captions': caption_feat_dict,
               'idxs': idxs, 'vis_ids': vis_ids, 'cap_ids': cap_ids,
               'captions_task3': caption_task3_feat_dict, "captions_task3_mask": mask_task3,"frame_mask":frame_mask}
     return output
@@ -303,7 +262,7 @@ def collate_pair_withneg(data):
 
 
 class ImageDataset(data.Dataset):
-    def __init__(self, id_path_file, max_length=20,oversample=False, sample_frame=8, sample_type='uniform'):
+    def __init__(self, id_path_file,oversample=False, sample_frame=8, sample_type='uniform'):
         """
         :param id_path_file: similar to "video5027_200  ImageData/video5027/video5027_200.jpg \n ..."
         :param oversample:
@@ -328,7 +287,6 @@ class ImageDataset(data.Dataset):
 
         self.sample_frame = sample_frame
         self.sample_type = sample_type
-        self.max_length=max_length
         collection_path = os.path.dirname(id_path_file)
         data = list(map(str.strip, open(id_path_file).readlines()))
         self.image_ids = [x.split()[0] for x in data]
@@ -441,7 +399,7 @@ class ImageDataset(data.Dataset):
             else:
                 images = torch.cat((images, image), dim=0)
             image_ids.append(os.path.basename(each).split('.')[0])
-        enc_masks = torch.zeros( self.max_length)
+        enc_masks = torch.zeros( self.sample_frame)
         enc_masks[ :len(image_ids)] = 1
         return image_ids, images,enc_masks
 
@@ -453,13 +411,6 @@ class VisionDataset(data.Dataset):
 
     def __init__(self, params):
 
-        # 帧级别格式: frame_name tensors ...
-        if 'vis_frame_feat_dicts' in params:
-            if params['vis_frame_feat_dicts'] is not None:
-                self.max_frame = params['max_frame']  # 最大出现帧数
-                self.multi_frame_feat = True
-                self.vis_frame_feat_dict = params['vis_frame_feat_dicts']
-                self.visual_id2frame_id_dict = self.__get_visual_id2frame_id_dict__(self.vis_frame_feat_dict)
 
         # self.vis_ids = self.vis_feat_file.names if params.get('vis_ids', None) is None else params['vis_ids']
         self.vis_ids = params.get('vis_ids', None)
@@ -478,7 +429,7 @@ class VisionDataset(data.Dataset):
                 self.ImageDataset = ImageDataset(
                     params['frame_id_path_file'],
                     sample_frame=params['config'].sample_frame,
-                    sample_type=sample_type,max_length=params["max_frame"]
+                    sample_type=sample_type
                 )
 
     def __get_visual_id2frame_id_dict__(self, vis_frame_feat_dict):
@@ -533,7 +484,7 @@ class TextDataset(data.Dataset):
     def __init__(self, params, task3=False, capfile_task2=False, capfile_task3=False):
         capfile = params['capfile']
         # 读取预先计算特征
-        capfile_task2 = params['capfile_task2']
+        capfile_task2 = False
         self.pre_calculate_feat_files = {}
         # try:
         #     if not capfile_task2 and not task3:
@@ -547,12 +498,7 @@ class TextDataset(data.Dataset):
 
         if task3 and 'CLIP_encoding' in self.pre_calculate_feat_files:
             self.pre_calculate_feat_files.pop('CLIP_encoding')
-        if capfile_task2:
-            cap_ids = list(map(lambda x: x.split("#")[0], open(capfile).readlines()))
-            capfile = params['capfile_task2']
-        elif capfile_task3:
-            capfile = params['capfile_task3']
-
+        
         self.capfile_task3 = capfile_task3
         self.capfile_task2 = capfile_task2
 
@@ -693,18 +639,9 @@ class PairDataset(data.Dataset):
         self.params = params
         self.visData = VisionDataset(params)
 
-        if params['capfile_task2'] is None:
-            self.txtData_task2 = None
-        else:
-            self.txtData_task2 = TextDataset(params)
-        if params['capfile_task3'] is None:
-            self.txtData_task3 = None
-            self.txtData = TextDataset(params)
-        else:
-            self.txtData = TextDataset(params, task3=True)
-            self.txtData_task3 = TextDataset(params, task3=True, capfile_task3=True)
-            self.txtData_augmentation = self.get_negation_augumentation(self.txtData.captions,
-                                                                        self.txtData_task3.mask_task3)
+        self.txtData_task3 = None
+        self.txtData = TextDataset(params)
+
         self.cap_ids = self.txtData.cap_ids
         self.length = len(self.cap_ids)
 

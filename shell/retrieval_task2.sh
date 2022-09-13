@@ -155,7 +155,7 @@ echo "$trainCollection $valCollection --rootpath $rootpath --config $config --va
     overwrite=1
 
        model_path0=$rootpath/$trainCollection/w2vvpp_train/$valCollection/$config/$model_prefix
-    model_names=('checkpoint_epoch_1.pth.tar')
+    model_names=('model_best.pth.tar')
 
       for model_name in ${model_names[*]}
         do

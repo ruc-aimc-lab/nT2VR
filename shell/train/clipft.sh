@@ -4,28 +4,39 @@ source activate py37
 
 # *************************萌萌哒******************************
 # 并行参数
-Nproc=1 # 最大同s时运行数目
-devices=(0)
-# 实验超参
+Nproc=1 # 最大同时运行数目
+devices=(2)
 rootpath="/data1/wzy/neg_data"
-trainCollection="msrvtt10ktrain"
-valCollection="msrvtt10kval"
 val_set='no'
-testCollection="msrvtt10ktest"
-config='CLIP.CLIPEnd2EndNegnomask'
+config='CLIP.CLIPEnd2End_adjust'
+# msrvtt 1k split
+#trainCollection="msrvtt1kAtrain"
+#valCollection="msrvtt1kAval"
+#testCollection="msrvtt1kAtest"
+
+# msrvtt 7k split
+#trainCollection="msrvtt10ktrain"
+#valCollection="msrvtt10kval"
+#testCollection="msrvtt10kest"
+
+# vatex
+trainCollection="vatex_train"
+valCollection="vatex_val1k5"
+testCollection="vatex_test1k5"
+
 pretrained_file_path=None
 batch_size=64
 overwrite=0
-task3suffix="negation"
+task3suffix="no_task3_caption"
 random_seeds=(2)  # 初始化随机数种子
 #parm_adjust_configs=(1)
 
 
-parm_adjust_configs=(     "1_0.001_0.1_0.6_100_0.1_0.3_0.001"  )
+parm_adjust_configs=(     "1"  )
 
 echo ${parm_adjust_configs[*]}
 
-model_prefix_="runs_x_"
+model_prefix_="runs_"
 result_file="result_log/result_${model_prefix_}_${config}_${task3suffix}.txt"
 
 cd ..

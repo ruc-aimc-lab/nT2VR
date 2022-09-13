@@ -52,42 +52,6 @@ def parse_args():
     return args
 #
 #
-# def txt2video_write_to_file(pred_result_file, inds, vis_ids, txt_ids, t2i_matrix, metrics,labels,pkl_saved_file=None,
-#                             txt_loader=None, Threshold=10000):
-#     if len(vis_ids) >= Threshold:  # 只保存前 1e4 的检索结果
-#         TopK = Threshold
-#     else:
-#         TopK = -1
-#     start = time.time()
-#     if metrics:
-#         aps, r1s, r5s, r10s, ranks=metrics
-#     with open(pred_result_file, 'w') as fout:
-#         shot_dict = {}  # 写到字典，方便做 demo
-#         for index in range(inds.shape[0]):
-#             ind = inds[index][::-1][0:TopK]
-#
-#             fout.write(txt_ids[index] + ' ' + ' '.join([vis_ids[i] + ' %s' % t2i_matrix[index][i]
-#                                                         for i in ind]) + '\n')
-#             if pkl_saved_file is not None:
-#                 shot_dict[txt_ids[index]] = {}
-#                 shot_dict[txt_ids[index]]['labels'] =labels[index]
-#                 shot_dict[txt_ids[index]]['query'] = \
-#                     txt_loader.dataset.get_caption_dict_by_id(txt_ids[index])["caption"]
-#                 shot_dict[txt_ids[index]]['rank_list'] = [vis_ids[i] for i in ind]
-#                 shot_dict[txt_ids[index]]['sim_value'] = [t2i_matrix[index][i] for i in ind]
-#                 if metrics is not None:
-#                     shot_dict[txt_ids[index]]['mAP'] = aps[index]
-#                     shot_dict[txt_ids[index]]['r1'] = r1s[index]
-#                     shot_dict[txt_ids[index]]['r5'] = r5s[index]
-#                     shot_dict[txt_ids[index]]['r10'] = r10s[index]
-#                     shot_dict[txt_ids[index]]['ranks'] = ranks[index]
-#         if pkl_saved_file is not None:
-#             with open(pkl_saved_file, 'wb') as f_shot_dict:
-#                 pickle.dump(shot_dict, f_shot_dict)
-#     print('writing result into file time: %.3f seconds\n' % (time.time() - start))
-
-
-
 
 
 
@@ -186,7 +150,7 @@ def get_predict_file_multigt(opt, checkpoint):
     print("use", config.sample_frame, 'frame')
     vis_loader = data.vis_provider({'vis_feat_files': vis_feat_files, 'vis_ids': vis_ids, 'pin_memory': False,
                                     'vis_frame_feat_dicts': vis_frame_feat_dicts,"origin_vis_feat_files":None,
-                                    'max_frame': config.max_frame,
+
                                     'sample_type': config.frame_sample_type_test,
                                     'config': config,
                                     'frame_id_path_file': frame_id_path_file,

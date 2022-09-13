@@ -250,11 +250,11 @@ class T2vmodel(nn.Module):
 
 
     def cal_foward(self, train_data,epoch=None):
-        (vis_input, caption_feat_dict, labels_input,
+        (vis_input, caption_feat_dict,
          vis_frame_feat_dict_input,
          vis_origin_frame_tuple) = (
             train_data['vis_feats'], train_data['captions'],
-            train_data['captions_task2'], train_data['vis_frame_feat_dict'],
+            train_data['vis_frame_feat_dict'],
             train_data['vis_origin_frame_tuple']
         )
         if vis_frame_feat_dict_input == {}:
@@ -417,8 +417,64 @@ class Clip(T2vmodel):
         self.clip_model = CLIPEncoder(opt)
 
         self.opt = opt
+        self.grad_clip = opt.grad_clip
+        if torch.cuda.is_available():
+            cudnn.benchmark = True
+
+        self.criterion = MarginRankingLoss(margin=opt.margin,
+                                           measure=opt.measure,
+                                           max_violation=opt.max_violation,
+                                           cost_style=opt.cost_style,
+                                           direction=opt.direction,
+                                           device=device)
+
+        self.params = list(self.parameters())  # 所有 params
+
+        # 设置学习率
+        params_special = []
+        params_usual = []
+        for name, parm in list(self.named_parameters()):
+            if ('BertModel' in name) or ('csn_model' in name) or ('ClipModel' in name):
+                params_special.append(parm)
+            else:
+                params_usual.append(parm)
+        params = [{'params': params_usual},
+                  {'params': params_special, 'lr': opt.lr / 100}]
+
+        if opt.optimizer == 'adam':
+            self.optimizer = torch.optim.Adam(params, lr=opt.lr)
+        elif opt.optimizer == 'rmsprop':
+            self.optimizer = torch.optim.RMSprop(params, lr=opt.lr)
+
+        self.lr_schedulers = [torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=1, gamma=opt.lr_decay_rate),
+                              torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, mode='max', factor=0.5,
+                                                                         patience=2)]
+
+        self.iters = 0
+        self.softmax=nn.Softmax(dim=1)
 
 
+    def cal_foward(self, train_data,epoch=None):
+        (vis_input, caption_feat_dict,
+         vis_frame_feat_dict_input,
+         vis_origin_frame_tuple) = (
+            train_data['vis_feats'], train_data['captions'],
+           train_data['vis_frame_feat_dict'],
+            train_data['vis_origin_frame_tuple']
+        )
+        if vis_frame_feat_dict_input == {}:
+            vis_frame_feat_dict_input = None
+        # compute the embeddings
+        output = self.clip_model(caption_feat_dict,
+                                   vis_origin_frame_tuple=vis_origin_frame_tuple,
+                                )
+        vis_embs, txt_embs = output['visual_features'], output['text_features']
+        # measure accuracy and record loss
+        self.optimizer.zero_grad()
+        loss, loss_items = self.compute_loss(vis_embs, txt_embs, 0, 0, 0)
+        # print("triplet_loss and multi_label_loss_vis", loss_items, end='\r')
+
+        return loss, loss_items
 
     def predictneg_adhoc(self, txt_loader, vis_loader, measure, record_emb=False, neg_method="sub"):
         self.eval()
